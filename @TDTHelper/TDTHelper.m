@@ -70,8 +70,12 @@ classdef TDTHelper
             Tend    = 0; % 0 = end of block
             options = 'ALL'; % Get all data
             
-            if ~ok
-                keyboard
+            if ~ok 
+                % For debugging: This prevents skipping files that aren't 
+                % available, which isn't ideal. 
+                disp('TDT data not available')
+                return
+                % Replace with skip on fail?
             end
             
             for e = 1:numel(obj.evIDs)
@@ -99,12 +103,13 @@ classdef TDTHelper
                     
                     % De-concatenate Parse Event matrix
                     n_x = numel(x);
-                    output = reshape(1, x, n_x);
-                    clear x
+                    output = reshape(x, n_x, 1); %#ok<NASGU>
+                    clear x ev
                     
                     % Write output to disk
                     save(outFile.char(), 'output')
                     
+                    clear output
                 end
             end
             
@@ -115,25 +120,33 @@ classdef TDTHelper
             pause(0.05)
         end
         
-        function data = loadEvID(obj, name)
-            % Load named EvId eg. obj.loadEvID('BB_2')
-            loadIdx = obj.extractionPaths.contains(name);
-            
-            loadPaths = obj.extractionPaths(loadIdx);
-            nLoad = sum(loadIdx);
-            
-            % Load first
-            d = load(loadPaths(1).char());
-            
-            % Expect all to be same length, preallocate now as same type
-            data = zeros(nLoad, size(d.output,2), class(d.output));
-            data(1,:) = d.output;
-            
-            
-            % Load the rest
-            for p = 2:nLoad
-                d = load(loadPaths(p).char());
-                data(p,:) = d.output;
+        function [data, ok] = loadEvID(obj, name)
+            try % Instead of exist check, for now
+                % Load named EvId eg. obj.loadEvID('BB_2')
+                loadIdx = obj.extractionPaths.contains(name);
+                
+                loadPaths = obj.extractionPaths(loadIdx);
+                nLoad = sum(loadIdx);
+                
+                % Load first
+                d = load(loadPaths(1).char());
+                
+                % Expect all to be same length, preallocate now as same type
+                data = zeros(size(d.output,1), nLoad, class(d.output));
+                data(:,1) = d.output;
+                
+                % Load the rest
+                for p = 2:nLoad
+                    d = load(loadPaths(p).char());
+                    data(:,p) = d.output;
+                end
+                
+                ok = true;
+            catch
+                % Assuming error here is due to one or more file not being
+                % available
+                ok = false;
+                data = [];
             end
             
         end
