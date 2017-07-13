@@ -123,6 +123,7 @@ classdef TDTHelper
         function [data, ok] = loadEvID(obj, name)
             try % Instead of exist check, for now
                 % Load named EvId eg. obj.loadEvID('BB_2')
+                disp(['Loading ', name, '...'])
                 loadIdx = obj.extractionPaths.contains(name);
                 
                 loadPaths = obj.extractionPaths(loadIdx);
